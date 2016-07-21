@@ -192,6 +192,13 @@ def normalize_convex(x, axis=None):
     x /= s  # will fail if x is not of type float
     return s
 
+def obj_array_get_N(a):
+    if is_obj_array(a):
+        N = a.ravel()[0].shape[0]
+    else:
+        N = a.shape[0]
+    return N
+
 def is_obj_array(a):
     result = a.dtype == np.dtype('O') and a.ndim >= 1 and a.shape[0] == 1
     return result

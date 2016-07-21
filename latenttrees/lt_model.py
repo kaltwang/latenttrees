@@ -11,7 +11,7 @@ from latenttrees.lt_helper import is_message_1to2, calc_lklhd_parent_messages, i
     NanSelect, select_max_undecorated, select_weighted_random_undecorated, select_random_undecorated, \
     select_random_metropolis_undecorated
 from misc.numpy_helper import normalize_convex, is_obj_array, ProgressLine, has_equiv_shape, cut_max, norm_logpdf, \
-    normalize_convex_log, expand_array
+    normalize_convex_log, expand_array, obj_array_get_N
 from misc.python_helper import has_elements, isequal_or_none
 
 # profile magic: define @profile decorator on the fly, if not defined by the kernprof script
@@ -599,25 +599,12 @@ class Data(GraphManipulator):
         g.N = N
         node.x = distrib
 
-    @staticmethod
-    def __is_obj_array(a):
-        result = a.dtype == np.dtype('O') and a.ndim >= 1 and a.shape[0] == 1
-        return result
-
-    @staticmethod
-    def __get_N(a):
-        if is_obj_array(a):
-            N = a.ravel()[0].shape[0]
-        else:
-            N = a.shape[0]
-        return N
-
     def insert_samples(self, id_nodes, samples):
         """Insert data x for multiple nodes.
         :param id_nodes: Mx1 node identifier
         :param samples: NxM numpy array
         """
-        self._print("inserting N={} samples into M={} nodes".format(self.__get_N(samples), len(id_nodes)))
+        self._print("inserting N={} samples into M={} nodes".format(obj_array_get_N(samples), len(id_nodes)))
         for i, id_node in enumerate(id_nodes):
             self.__insert_samples(id_node, samples[:, i])
 
