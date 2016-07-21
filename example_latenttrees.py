@@ -61,4 +61,7 @@ X_prediction, lklhd_test = model.testing(X_test[:, ind_o], ind_o, ind_u)
 # size of X_prediction is N x 2
 
 # draw the learned tree (needs pygraphviz installed)
-# model.graph.draw()
+try:
+    model.graph.draw()
+except ImportError:
+    print('Drawing requires pygraphviz, available at: http://pygraphviz.github.io/')
