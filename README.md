@@ -13,7 +13,7 @@ Dependencies:
 - matplotlib
 - networkx
 - graphviz (optional, to draw the tree)
-- pygraphviz (optional, to draw the tree)
+- pydotplus (optional, to draw the tree)
 
 Usage:
 - make sure the modules latenttrees and misc can be found in the Python path

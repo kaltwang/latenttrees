@@ -383,8 +383,12 @@ class Graph(GraphObject):
     def draw_axes(self, ax=None, id_highlight=None):
         # plt.ion()  # interactive mode on (doesn't work with pycharm)
         g = self.__nxgraph
-        # new call format in networkx 1.11 (was nx.graphviz_layout(g, prog='dot'))
-        pos = nx.drawing.nx_agraph.graphviz_layout(g, prog='dot')
+        # new call format for networkx 1.11 (uses pygraphviz, which does not support Python 3!)
+        # pos = nx.drawing.nx_agraph.graphviz_layout(g, prog='dot')
+        # old call format for networkx 1.10
+        # pos = nx.graphviz_layout(g, prog='dot')
+        # new call format for networkx 1.11 (uses pydot)
+        pos = nx.drawing.nx_pydot.graphviz_layout(g, prog='dot')
 
         if ax is None:
             ax = self.get_axes(self.id_axes)
