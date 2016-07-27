@@ -2284,7 +2284,6 @@ class StructureUpdatePredefined(StructureUpdate):
     def __init__(self, graph, data, inference, parameter_learning):
         super(StructureUpdatePredefined, self).__init__(graph, data, inference, parameter_learning)
         self._register_properties()
-        self.adjlist = None
 #ToDo:
 # Implement within run() method:
 # (1) remove gaussian parents (opposite of add_gaussian_parents())
@@ -2801,20 +2800,6 @@ class StructureLearning(GraphManipulator):
         self.log = Log()
 
         self.pl_recursive = True
-
-    def _logging_iteration(self, count, lklhd_parameters, lklhd_diff, lklhd_diff_structure, lklhd_diff_parameters):
-        # self._print('count={}, num_roots={}, lklhd={}, lklhd_diff={} (structure_diff={}, parameter_diff={})'.format(count, self._graph.get_num_roots(), lklhd_parameters, lklhd_diff, lklhd_diff_structure, lklhd_diff_parameters))
-        log_entry = LogEntry(count, self._graph.get_num_roots(), lklhd_parameters, lklhd_diff, lklhd_diff_structure,
-                             lklhd_diff_parameters, self._graph.number_of_nodes())
-        self._print(log_entry.as_str())
-        self.log.append(log_entry)
-
-
-class StructureLearningIterative(StructureLearning):
-    def __init__(self, graph, inference,  parameter_learning, structure_update):
-        super(StructureLearningIterative, self).__init__(graph, inference,  parameter_learning, structure_update)
-        self.lklhd_mindiff = 1.e-6
-        self.count_max = 999999
 
     @profile
     def run(self):
