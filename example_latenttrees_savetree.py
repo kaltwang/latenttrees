@@ -60,5 +60,10 @@ X_prediction, lklhd_test = model.testing(X_test[:, ind_o], ind_o, ind_u)
 # the output are only the unobserved dimensions (indexed by ind_u), i.e.
 # size of X_prediction is N x 2
 
+
+adjlist = model.graph.get_adjlist()
+for line in adjlist:
+    print(line)
+
 # draw the learned tree (needs pygraphviz installed)
 model.graph.draw()

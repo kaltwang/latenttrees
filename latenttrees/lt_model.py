@@ -248,9 +248,10 @@ class Graph(GraphObject):
         """Adds a new node to the graph.
         :param k: cardinality of the node (k==1 for Gaussian and k>1 for categorical random variables)
         """
-        node_ = self.__node_factory.create_node(k)
         id_node = self.__id_node_next
         self.__id_node_next += 1
+
+        node_ = self.__node_factory.create_node(k)
         self.__nxgraph.add_node(id_node, {Graph.OBJ_STR: node_})
 
         # side effects
@@ -518,6 +519,35 @@ class Graph(GraphObject):
                 _, id_next = is_message_1to2(id_node1, id_node2, id_node)
                 self.__func_iter(id_next, recursive=recursive, id_except=id_node, func_node=func_node, func_edge=func_edge)
 
+    def get_adjlist(self):
+        # the returned adjacency list is guaranteed to be ordered in a way, that all targets in each line have been
+        # defined before.
+
+        #gen = nx.generate_adjlist(self.nxgraph)
+        dict_of_lists = nx.to_dict_of_lists(self.__nxgraph)
+        # sort according id1 (the second sort below is stable, thus this will be the secondary order)
+        # sorting key is the first item, i.e. id1
+        list_of_tuples = sorted(dict_of_lists.items(), key=lambda x: x[0])
+        adjlist = []
+        layer = []
+        for id1, ids2 in list_of_tuples:
+            lay = self.node(id1).layer
+            adjlist.append([id1] + ids2)
+            layer.append(lay)
+
+        # sort according layer
+        # sorting key is the first item, i.e. the layer
+        adjlist_reordered = [i[0] for i in sorted(zip(adjlist, layer), key=lambda x:x[1])]
+
+        # rename the ids to id new, which use consecutive numbers starting from 0
+        id_nodes = [line[0] for line in adjlist_reordered]
+        id2idn = {} # idn: id new
+        for idn, id in enumerate(id_nodes):
+            id2idn[id] = idn
+        # rename all ids from id to idn
+        adjlist_renamed = [[id2idn[id] for id in line] for line in adjlist_reordered]
+
+        return adjlist_renamed
 
 
 class GraphManipulator(ObjectRoot):
@@ -2725,9 +2755,6 @@ class StructureLearning(GraphManipulator):
         assert isinstance(inference, BeliefPropagation)
         assert isinstance(parameter_learning, ParameterLearning)
         assert isinstance(structure_update, StructureUpdate)
-        self._prop_graph = set()
-        self._prop_node = set()
-        self._prop_edge = set()
         self._register_properties()
 
         self._inference = inference
