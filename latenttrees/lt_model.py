@@ -2895,12 +2895,18 @@ class StructureLearning(GraphManipulator):
                 self._print('No more possible structure updates.')
 
         # final recursive parameter optimization
-        if not self.pl_recursive or not pl.restart_recursive:
-            self.print('Do final recursive parameter optimization.')
-            pl.restart_recursive = True
-            lklhd_structure = lklhd_last
-            lklhd_parameters = pl.run()
-            self.__do_logging(count, lklhd_parameters, lklhd_structure, lklhd_last)
+        self._print('Do final recursive parameter optimization.')
+
+        # change the parameter learning variables:
+        pl.restart_recursive = True
+        pl.lklhd_mindiff /= 10
+        pl.count_max *= 10
+        pl.print_every = 100
+        pl.print_em = True
+
+        lklhd_structure = lklhd_last
+        lklhd_parameters = pl.run()
+        self.__do_logging(count, lklhd_parameters, lklhd_structure, lklhd_last)
 
         return lklhd_last
 
