@@ -60,10 +60,14 @@ X_prediction, lklhd_test = model.testing(X_test[:, ind_o], ind_o, ind_u)
 # the output are only the unobserved dimensions (indexed by ind_u), i.e.
 # size of X_prediction is N x 2
 
-
 adjlist = model.graph.get_adjlist()
-for line in adjlist:
-    print(line)
-
-# draw the learned tree (needs pygraphviz installed)
 model.graph.draw()
+
+# create new model
+model2 = lt.LatentTree(structure_update=lt.StructureUpdatePredefined)
+model2.structure_update.adjlist = adjlist
+
+model2.training(X_train, K)
+print('lklhd_train = {}'.format(model2.lklhd))
+
+model2.graph.draw()

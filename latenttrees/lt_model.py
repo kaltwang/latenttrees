@@ -544,8 +544,12 @@ class Graph(GraphObject):
         id2idn = {} # idn: id new
         for idn, id in enumerate(id_nodes):
             id2idn[id] = idn
-        # rename all ids from id to idn
-        adjlist_renamed = [[id2idn[id] for id in line] for line in adjlist_reordered]
+        # rename all ids from id to idn and sort them
+        adjlist_renamed = []
+        for line in adjlist_reordered:
+            line_renamed = [id2idn[id] for id in line]
+            line_renamed = [line_renamed[0]] + sorted(line_renamed[1:])
+            adjlist_renamed.append(line_renamed)
 
         return adjlist_renamed
 
@@ -1713,7 +1717,7 @@ class ParameterLearning(GraphManipulator):
             assert np.allclose(lklhd, lklhd2)  # just to double-check
 
             if self.print_restarts:
-                self._print('EM restarts: id_root={}, best of {} is {} with lklhd={} (max diff={}); recursive={}'.format(id_root, len(lklhds), num_best+1, lklhd, lklhd - min(lklhds), recursive))
+                self._print('EM restarts: id_root={}, best of {} is {} with lklhd={} (max diff={}); recursive={}; restart_recursive={}'.format(id_root, len(lklhds), num_best+1, lklhd, lklhd - min(lklhds), recursive, restart_recursive))
 
         # finally do a full recursive run
         if ((not restart_recursive) and recursive) or (self.restarts == 0):
@@ -1812,6 +1816,21 @@ class StructureUpdate(GraphManipulator):
         nodes = self._graph.nodes()
         for id_node in nodes:
             self.__gaussian_add_parent(id_node)
+
+    @profile
+    def remove_gaussian_parents(self):
+        g = self._graph
+        num_removed = 0
+        # can't use iterator, since nodes are deleted while iterating
+        nodes_data = g.nodes(data=True)
+        for id_node, node in nodes_data:
+            if node.k == 1:
+                id_parent = g.get_parent(id_node)
+                if self._is_single_continuous_parent(id_parent):
+                    g.remove_edge(id_parent, id_node)
+                    g.remove_node(id_parent)
+                    num_removed += 1
+        self._print('removed {} gaussian parents'.format(num_removed))
 
     @profile
     def run(self):
@@ -1996,17 +2015,27 @@ class StructureUpdate(GraphManipulator):
         # - already existing nodes must have no children
         # - new nodes must have ids in increasing order
         # - ids are only allowed as child if they have been defined before
+
+        self._print('adding {} nodes from adjacency list'.format(len(adjlist)))
+        ide2id = {}
+
         for line in adjlist:
-            id_node = line[0]
-            id_children = line[1:]
+            ide_node = line[0]
+            ide_children = line[1:]
             # these checks assume a tree structure
-            if self._graph.has_node(id_node):
+            if self._graph.has_node(ide_node):
                 # if node already exists, then it must be one of the data input ones and thus doesn't have children
-                assert not id_children
+                assert not ide_children
+                ide2id[ide_node] = ide_node
             else:
-                id_node_new = self.__add_node_with_children(id_children)
-                # assert id consistency
-                assert id_node == id_node_new
+                # if node does not exist yet, then it must be one of the hidden nodes and thus must have children
+                assert ide_children
+                # map ide to id
+                id_children = [ide2id[ide] for ide in ide_children]
+                id_node = self.__add_node_with_children(id_children)
+                ide2id[ide_node] = id_node
+                # # assert id consistency
+                # assert ide_node == id_node
 
     @profile
     def update_lklhd_pot_diff(self):
@@ -2284,6 +2313,27 @@ class StructureUpdatePredefined(StructureUpdate):
     def __init__(self, graph, data, inference, parameter_learning):
         super(StructureUpdatePredefined, self).__init__(graph, data, inference, parameter_learning)
         self._register_properties()
+        self.adjlist = None
+        self.__done = False
+
+    def run(self):
+        if self.adjlist is None:
+            raise ValueError('The variable adjlist is empty, but an adjacency list was expected!')
+
+        if not self.__done:
+            self.remove_gaussian_parents()
+            self.add_nodes_from_adjlist(self.adjlist)
+            self._data.run()
+            lklhd = self._inference.run()
+            self.__done = True
+
+            # set restart_recursive to True (otherwise we would only learn a part of the tree
+            self._parameter_learning.restart_recursive = True
+        else:
+            # already done adding nodes
+            lklhd = None
+        id_roots_changed = None
+        return lklhd, id_roots_changed
 #ToDo:
 # Implement within run() method:
 # (1) remove gaussian parents (opposite of add_gaussian_parents())
@@ -2801,6 +2851,16 @@ class StructureLearning(GraphManipulator):
 
         self.pl_recursive = True
 
+    def __do_logging(self, count, lklhd_parameters, lklhd_structure, lklhd_last):
+        lklhd_diff = lklhd_parameters - lklhd_last
+        lklhd_diff_structure = lklhd_structure - lklhd_last
+        lklhd_diff_parameters = lklhd_parameters - lklhd_structure
+        log_entry = LogEntry(count, self._graph.get_num_roots(), lklhd_parameters, lklhd_diff, lklhd_diff_structure,
+                             lklhd_diff_parameters, self._graph.number_of_nodes())
+        self._print(log_entry.as_str())
+        self.log.append(log_entry)
+
+
     @profile
     def run(self):
         pl = self._parameter_learning
@@ -2816,21 +2876,15 @@ class StructureLearning(GraphManipulator):
                 # only run the parameter learning on the changed subtrees
                 pl.run(id_roots=id_roots, recursive=self.pl_recursive)
                 lklhd_parameters = self._inference.get_lklhd_all()
-                lklhd_diff_structure = lklhd_structure - lklhd_last
-                lklhd_diff_parameters = lklhd_parameters - lklhd_structure
                 lklhd_diff = lklhd_parameters - lklhd_last
 
                 condition_lklhd = lklhd_diff > self.lklhd_mindiff
                 condition_count = count < self.count_max
                 continue_condition = condition_count & condition_lklhd
 
-                # self._print('count={}, num_roots={}, lklhd={}, lklhd_diff={} (structure_diff={}, parameter_diff={})'.format(count, self._graph.get_num_roots(), lklhd_parameters, lklhd_diff, lklhd_diff_structure, lklhd_diff_parameters))
-                log_entry = LogEntry(count, self._graph.get_num_roots(), lklhd_parameters, lklhd_diff, lklhd_diff_structure, lklhd_diff_parameters, self._graph.number_of_nodes())
-                self._print(log_entry.as_str())
-                self.log.append(log_entry)
-
-                count += 1
+                self.__do_logging(count, lklhd_parameters, lklhd_structure, lklhd_last)
                 lklhd_last = lklhd_parameters
+                count += 1
 
                 if not condition_lklhd:
                     self._print('Terminate because lklhd_diff <= mindiff.')
@@ -2840,20 +2894,15 @@ class StructureLearning(GraphManipulator):
                 continue_condition = False
                 self._print('No more possible structure updates.')
 
+        # final recursive parameter optimization
+        if not self.pl_recursive or not pl.restart_recursive:
+            self.print('Do final recursive parameter optimization.')
+            pl.restart_recursive = True
+            lklhd_structure = lklhd_last
+            lklhd_parameters = pl.run()
+            self.__do_logging(count, lklhd_parameters, lklhd_structure, lklhd_last)
+
         return lklhd_last
-
-
-class StructureLearningPredefined(StructureLearning):
-    def __init__(self, graph, inference,  parameter_learning, structure_update, adjlist=None):
-        super(StructureLearningPredefined, self).__init__(graph, inference,  parameter_learning, structure_update)
-        self.adjlist = adjlist
-
-    @profile
-    def run(self):
-        pl = self._parameter_learning
-        su = self._structure_update
-
-        su.add_nodes_from_adjlist(self.adjlist)
 
 
 class LatentTree(ObjectRoot):
