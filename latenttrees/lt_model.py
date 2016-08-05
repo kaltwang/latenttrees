@@ -12,7 +12,7 @@ from latenttrees.lt_helper import is_message_1to2, calc_lklhd_parent_messages, i
     select_random_metropolis_undecorated
 from misc.numpy_helper import normalize_convex, is_obj_array, ProgressLine, has_equiv_shape, cut_max, norm_logpdf, \
     normalize_convex_log, expand_array, obj_array_get_N
-from misc.python_helper import has_elements, isequal_or_none
+from misc.python_helper import has_elements, isequal_or_none, get_and_set_attr
 
 # profile magic: define @profile decorator on the fly, if not defined by the kernprof script
 # see http://stackoverflow.com/questions/18229628/python-profiling-using-line-profiler-clever-way-to-remove-profile-statements
@@ -2894,19 +2894,23 @@ class StructureLearning(GraphManipulator):
                 continue_condition = False
                 self._print('No more possible structure updates.')
 
-        # final recursive parameter optimization
+        # final parameter optimization
         self._print('Do final recursive parameter optimization.')
 
         # change the parameter learning variables:
-        pl.restart_recursive = True
-        pl.lklhd_mindiff /= 10
-        pl.count_max *= 10
-        pl.print_every = 100
-        pl.print_em = True
+        parameters_new = {'restart_recursive':True,
+                     'lklhd_mindiff':1e-5,
+                     'count_max':1000,
+                     'print_every':100,
+                     'print_em':True}
+        parameters_original = get_and_set_attr(pl, parameters_new)
 
         lklhd_structure = lklhd_last
         lklhd_parameters = pl.run()
         self.__do_logging(count, lklhd_parameters, lklhd_structure, lklhd_last)
+
+        # restore old parameters:
+        get_and_set_attr(pl, parameters_original)
 
         return lklhd_last
 

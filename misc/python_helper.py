@@ -76,3 +76,11 @@ def isequal_or_none(a, b):
         if not a == b:
             return False
     return True
+
+def get_and_set_attr(obj, attr_dict, setval=True):
+    attr_dict_old = {}
+    for attr, value_new in attr_dict.items():
+        attr_dict_old[attr] = getattr(obj, attr)
+        if setval:
+            setattr(obj, attr, value_new)
+    return attr_dict_old
