@@ -267,13 +267,27 @@ def obj_array_concatenate(oa):
 def randomize_obj_array(X, K):
     if is_obj_array(X):
         X = X[0]
+        obj_array = True
+    else:
+        obj_array = False
 
+    X = randomize_select(X, K)
+
+    if obj_array:
+        Xo = np.empty((1,), dtype=object)
+        Xo[0] = X
+        X = Xo
+
+    return X
+
+
+def randomize_select(X, K):
     if K == 1:
         assert X.ndim == 1
         # X.shape == (N,)
         X = randomize_gaussian(X)
     else:
-        if X.ndims > 1:
+        if X.ndim > 1:
             assert X.shape[1] == K
             # X.shape == (N,K)
             X = randomize_dirichlet(X)
@@ -302,6 +316,11 @@ def randomize_categorical(X, K):
     return X
 
 def randomize_dirichlet(X):
+    # additive smoothing to avoid numerical problems
+    M = X.shape[1]
+    # eps = np.spacing(1)
+    eps = 0.01 / M
+    X = (X + eps) / (1 + M * eps)
     alpha = dirichlet.mle(X)
     N = X.shape[0]
     X = np.random.dirichlet(alpha, size=N)

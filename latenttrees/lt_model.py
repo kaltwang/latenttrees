@@ -1,4 +1,4 @@
-import collections, copy, random, warnings, sys, builtins, time
+import collections, copy, random, warnings, sys, builtins, time, datetime
 from itertools import chain
 
 import numpy as np
@@ -35,7 +35,8 @@ class ObjectRoot(object):
 
     def _print_prefix(self):
         classname = type(self).__name__
-        prefix = "[" + classname + "] "
+        timestr = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        prefix = timestr + " [" + classname + "] "
         return prefix
 
 
