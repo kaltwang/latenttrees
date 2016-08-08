@@ -2894,6 +2894,10 @@ class StructureLearning(GraphManipulator):
             else:
                 continue_condition = False
                 self._print('No more possible structure updates.')
+            # flush stdout
+            # (for some reason otherwise no stdout is written during this stage, when streams are redirected to a
+            #  network file)
+            sys.stdout.flush()
 
         # final parameter optimization
         self._print('Do final recursive parameter optimization.')
