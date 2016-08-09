@@ -2467,6 +2467,15 @@ class StructureUpdateCVPR2015(StructureUpdate):
             create_node = new_node_cond[id_parent, id_child]
         else:
             id_parent, id_child, create_node = None, None, None
+            # debug printout
+            lklhd_pot_diff_orig = self._get_lklhd_pot_diff()
+            if np.any(~np.isnan(lklhd_pot_diff_orig)):
+                id_parent_max, id_child_max = StructureUpdate.select_max(lklhd_pot_diff_orig)
+                self._print('select_max=({},{}); lklhd_pot_diff={}; is_closed[id_child_max]={}'.format(
+                    id_parent_max, id_child_max, lklhd_pot_diff_orig[id_parent_max, id_child_max],
+                    is_closed[id_child_max]))
+            else:
+                self._print('select_max=(None,None)')
         return id_parent, id_child, create_node
 
 
