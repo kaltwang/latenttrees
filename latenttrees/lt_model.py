@@ -2351,6 +2351,7 @@ class StructureUpdateCVPR2015(StructureUpdate):
         self.lklhd_mindiff_siblings = -0.1
         self.select_strategy = StructureUpdate.select_max
         self.new_node_layer_plusone = True
+        self.force_full_tree = False
 
     @profile
     def is_allowed_child(self, id_child):
@@ -2474,6 +2475,9 @@ class StructureUpdateCVPR2015(StructureUpdate):
                 self._print('select_max=({},{}); lklhd_pot_diff={}; is_closed[id_child_max]={}'.format(
                     id_parent_max, id_child_max, lklhd_pot_diff_orig[id_parent_max, id_child_max],
                     is_closed[id_child_max]))
+                if self.force_full_tree:
+                    id_parent, id_child = id_parent_max, id_child_max
+                    create_node = new_node_cond[id_parent, id_child]
             else:
                 self._print('select_max=(None,None)')
         return id_parent, id_child, create_node
