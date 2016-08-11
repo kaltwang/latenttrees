@@ -1808,7 +1808,7 @@ class StructureUpdate(GraphManipulator):
         self.show_value_text = False
         self.keep_old_parents = False
         self.max_of_cp_and_pc = False
-        self.balance_k = False
+        self.balance_k = False  # balance the lklhd_pot_diff value according K of each node; does not seem to work well
         self.find_best_k = False
 
     @profile
