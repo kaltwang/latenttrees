@@ -2029,14 +2029,19 @@ class StructureUpdate(GraphManipulator):
                 assert not ide_children
                 ide2id[ide_node] = ide_node
             else:
-                # if node does not exist yet, then it must be one of the hidden nodes and thus must have children
-                assert ide_children
-                # map ide to id
-                id_children = [ide2id[ide] for ide in ide_children]
-                id_node = self.__add_node_with_children(id_children)
-                ide2id[ide_node] = id_node
+                # if node does not exist yet, then it should be one of the hidden nodes and thus must have children
+                if ide_children:
+                    # map ide to id
+                    id_children = [ide2id[ide] for ide in ide_children if ide2id[ide] is not None]
+                    id_node = self.__add_node_with_children(id_children)
+                    ide2id[ide_node] = id_node
+                else:
+                    # otherwise ignore node
+                    ide2id[ide_node] = None
+                    self._print('ide_node={} does not have children, leave it out'.format(ide_node))
                 # # assert id consistency
                 # assert ide_node == id_node
+        pass
 
     @profile
     def update_lklhd_pot_diff(self):
