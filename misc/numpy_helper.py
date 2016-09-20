@@ -1,4 +1,5 @@
 import numpy as np
+import warnings
 import time
 from misc.python_helper import isequal_or_none
 
@@ -300,7 +301,10 @@ def randomize_select(X, K):
 def randomize_gaussian(X):
     mean = np.mean(X)
     std = np.std(X)
-    X = np.random.normal(loc=mean, scale=std, size=X.shape)
+    if std > 0:
+        X = np.random.normal(loc=mean, scale=std, size=X.shape)
+    else:
+        warnings.warn('std is zero, thus leave X constant')
     return X
 
 def randomize_categorical(X, K):
