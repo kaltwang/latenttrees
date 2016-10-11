@@ -42,9 +42,9 @@ class random_getset_state(object):
 
 def normalize_mean_std(X, x_mean=None, x_std=None, axis=0):
     if x_mean is None:
-        x_mean = np.mean(X, axis=axis, keepdims=True)
+        x_mean = np.nanmean(X, axis=axis, keepdims=True)
     if x_std is None:
-        x_std = np.std(X, axis=axis, keepdims=True)
+        x_std = np.nanstd(X, axis=axis, keepdims=True)
         x_std[~np.isfinite(1 / x_std)] = 1
 
     X = X - x_mean
