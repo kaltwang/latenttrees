@@ -40,12 +40,24 @@ class random_getset_state(object):
         return wrapped_f
 
 
-def normalize_mean_std(X, x_mean=None, x_std=None, axis=0):
+def normalize_mean_std(X, x_mean=None, x_std=None, axis=0, ignore_nan=False):
+    if ignore_nan:
+        mean = np.nanmean
+        std = np.nanstd
+    else:
+        mean = np.mean
+        std = np.std
+
     if x_mean is None:
-        x_mean = np.nanmean(X, axis=axis, keepdims=True)
+        x_mean = mean(X, axis=axis, keepdims=True)
     if x_std is None:
-        x_std = np.nanstd(X, axis=axis, keepdims=True)
+        x_std = std(X, axis=axis, keepdims=True)
         x_std[~np.isfinite(1 / x_std)] = 1
+
+    if np.any(~np.isfinite(x_mean)):
+        warnings.warn("x_mean contains NaN or Inf values!")
+    if np.any(~np.isfinite(x_std)):
+        warnings.warn("x_std contains NaN or Inf values!")
 
     X = X - x_mean
     X = X / x_std
